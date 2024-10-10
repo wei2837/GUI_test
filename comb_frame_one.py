@@ -17,7 +17,7 @@ from byol_a.common import *
 from byol_a.augmentations import PrecomputedNorm
 
 from utils import padding_audio
-import shutil
+
 class CombinedModel(torch.nn.Module):
     def __init__(self, model, model_a, model_v):
         super(CombinedModel, self).__init__()
@@ -173,7 +173,7 @@ def parse_args():
     return args
 
 
-def inference(data_prefix,store_path,start_rate=0,end_rate=1):
+def inference(data_prefix,store_path):
     #warnings.filterwarnings('ignore')
     args = parse_args()
     args.is_rgb = args.modality == 'RGB'
@@ -263,25 +263,10 @@ def inference(data_prefix,store_path,start_rate=0,end_rate=1):
     if not osp.isdir(osp.join(frame_dir, 'tmps')):
         os.makedirs(osp.join(frame_dir, 'tmps'))
 
-    import subprocess
-    ffprobe_cmd = 'ffprobe -i {} -show_entries format=duration -v quiet -of csv="p=0"'
-    p = subprocess.Popen(
-        ffprobe_cmd.format(input_path),
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-        shell=True)
-    out, err = p.communicate()
-    duration_info = float(str(out, 'utf-8').strip())
-    start_time=str(int(start_rate*duration_info))
-    duration_time=str(int(end_rate*duration_info-start_rate*duration_info))
-    cmd1 = f'ffmpeg -y -loglevel quiet -i {input_path} -ss {start_time} -t {duration_time} -r 25 -ac 1 -ar 16000 {out_mp4_path} -map 0:a -ac 1 -ar 16000 {out_wav_path}'
+    cmd1 = f'ffmpeg -y -loglevel quiet -i {input_path} -r 25 -ac 1 -ar 16000 {out_mp4_path} -map 0:a -ac 1 -ar 16000 {out_wav_path}'
     #print(cmd1)
     r1 = os.popen(cmd1)
-
     r1.close()
-
-
-    shutil.rmtree(out_frame_path)
 
     vr = mmcv.VideoReader(out_mp4_path)
 
@@ -336,14 +321,8 @@ def inference(data_prefix,store_path,start_rate=0,end_rate=1):
     imgs = imgs.cuda()
     
     wav, sr = torchaudio.load(out_wav_path) # a sample from SPCV2 for now
-
-
-
-
-
     lms = normalizer((to_melspec(wav) + torch.finfo(torch.float).eps).log())
-
-    #print(lms)
+    #print(lms)       
     #print(device)
     with torch.no_grad():       
         #video_feats = model_re.model_v.forward(video_deal.to(device), return_loss=False)
@@ -358,4 +337,4 @@ def inference(data_prefix,store_path,start_rate=0,end_rate=1):
 
 
 if __name__ == '__main__':
-    inference('video/cabcdfd7108889050a36355e627bae0c.mp4',store_path='./store_folder')
+    inference('video/1f06565ace953b4ac94d52e8fe48d790.mp4',store_path='./store_folder')

@@ -1,5 +1,4 @@
 
-python==3.9
 absl-py==2.1.0
 addict==2.4.0
 aiohttp==3.9.3
